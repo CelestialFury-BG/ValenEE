@@ -2,13 +2,13 @@
   "id": "valenEE",
   "name": "Valen Mod Pack (Modern EE/EET Edition)",
   "author": "Weimer (Original), Modernization by /u/celestialfury",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "A fully modernized, modular, EE/EET-compatible version of the classic Valen mod. This edition rebuilds the technical foundation for modern WeiDU, featuring per-dialogue TRA scoping, layered language TRAs with automatic English fallback across ten languages, localized component names, explicit CRE field writes for the joinable Valen NPC via the reusable EE_SET_CRE_FIELDS helper, a CRE v1.0 format guard on all binary writes, removal of the Noober-era audio purge, load-order-safe 2DA patches, and bulletproofed ToB epilogues.",
   "category": "NPCs",
   "tags": ["REC", "TWE"],
   "supported_games": ["bg2ee", "eet"],
   "homepage": "https://github.com/CelestialFury-BG/ValenEE",
-  "download": "https://github.com/CelestialFury-BG/ValenEE/releases/tag/v2.0.4",
+  "download": "https://github.com/CelestialFury-BG/ValenEE/releases/tag/v2.0.5",
   "readme": "valenEE/readme-ee_updates.md",
   "languages": [
     { "index": 0, "name": "English", "dir": "american" },
@@ -27,7 +27,7 @@
       "index": 10,
       "name": "Valen: Core NPC",
       "tags": ["REC"],
-      "description": "Installs Valen as a joinable party companion. This component includes critical modernizations: explicit field writes for Valen's Dialogue resref, script resrefs, script name, and known-spells table (fixing the corrupted Dialogue resref at 0x2CC and the one-byte-misaligned known-spells table at 0x2D4), a CRE v1.0 format guard on every binary write, removal of the Noober-era audio purge that was silently muting Valen's sound slots, lowercase normalization of script resrefs and death variables for cross-platform safety, vampire hunter script strref resolution, cutscene hardening on the main AI script, area and priest-script extensions, and load-order-safe 2DA patches guarded by BUT_ONLY_IF_IT_CHANGES."
+      "description": "Installs Valen as a joinable party companion. This component includes critical modernizations: explicit field writes for Valen's Dialogue resref, script resrefs, script name, and known-spells table (fixing the corrupted Dialogue resref at 0x2CC and the one-byte-misaligned known-spells table at 0x2D4), an explicit gender write at 0x0238 so the CRE's gender byte is guaranteed Female regardless of the pristine file's contents, a CRE v1.0 format guard on every binary write, removal of the Noober-era audio purge that was silently muting Valen's sound slots, lowercase normalization of script resrefs and death variables for cross-platform safety, vampire hunter script strref resolution, cutscene hardening on the main AI script, area and priest-script extensions, and load-order-safe 2DA patches guarded by BUT_ONLY_IF_IT_CHANGES. The joinable Valen CRE uses setup.tra @17 (\"Valen\"); the Chapter 6 encounter CRE (c6valen.cre) deliberately retains @16 (\"Cynara\")."
     },
     {
       "index": 20,
