@@ -25,9 +25,11 @@ Key features:
 
 For a detailed technical comparison of how this edition differs from legacy builds of the same mod — including install safety, cross-platform behavior, and load-order compatibility — see [`COMPATIBILITY.md`](COMPATIBILITY.md).
 
-The **2.x modernization** fixes a long list of legacy issues that plagued the original mod on EE installs. Highlights as of **v2.0.4**:
+The **2.x modernization** fixes a long list of legacy issues that plagued the original mod on EE installs. Highlights as of **v2.0.5**:
 
 - **Explicit CRE field writes via `EE_SET_CRE_FIELDS`** — Valen's corrupted Dialogue resref (`VALE\x76` instead of `VALEN`) and her one-byte-misaligned known-spells table are both repaired by writing the values we already know from the mod tree
+- **Correct display name on the joinable Valen** — the original file caused the party UI to read *"Cynara"* (the Chapter 6 encounter CRE's display name) while every line of Valen's own dialogue said *"Valen"*. The joinable CRE now reads *"Valen"* via `setup.tra @17`; the Chapter 6 encounter CRE still reads *"Cynara"* as designed
+- **Explicit gender write** — the joinable CRE's gender byte at `0x0238` is guaranteed Female, so it cannot drift if the pristine file is ever regenerated from a Male template
 - **CRE v1.0 format guard** on every binary write — `READ_ASCII 0x04` + `STRING_EQUAL ~V1.0~`. The previous `READ_LONG` + integer comparison always failed because the version field is an ASCII string, not an integer, so every cleanup was silently skipped
 - **Noober-era audio purge removed** — an unrelated BG1 cleanup block had been silently muting every one of Valen's sound slots. Removed outright, not narrowed
 - **Load-order-safe 2DA patches** — `BUT_ONLY_IF_IT_CHANGES` on every shared table so we don't clobber other mods
@@ -80,6 +82,8 @@ If you also use **SolaufeinEE**, install **Valen before Solaufein**. Solaufein's
 
 Both installs are valid; the difference is only whether the extra dialogue is present.
 
+**One thing to know if you install Solaufein first.** ValenEE's Component 20 scans every CRE in `override/` at install time and adds the `PRODEAD` item to any that match its cleric/paladin class criteria. Two Solaufein CREs — `solafoe.cre` (Archryssa) and `solae4.cre` (Reffus, the Eclipse Cleric) — match those criteria. Installing ValenEE second will silently give them the extra protection item. This is a small difficulty tweak, not a compatibility break, but it is the reason the Valen-first order is preferred.
+
 ---
 
 ## Components
@@ -89,7 +93,7 @@ The installer offers two modular components. Component 10 is required for Valen 
 | # | Component | What It Does | Requires |
 |---|---|---|---|
 | **10** | **Valen: Core NPC** | Valen joins your party with her items, spells, portraits, AI script, vampiric ability progression, and the Vampire Hunter encounter. Includes explicit CRE field writes, CRE v1.0 format guard, deprecated-opcode cleanup, and cross-platform lowercase normalization. | — |
-| **20** | **Give More Creatures Protection From Level Drain & Undead** | Independent tweak: level drain immunity for inherently-undead-immune creatures, and protection from undead for qualifying priests and paladins. Scans every v1.0 CRE in `override/`, not a fixed list. | — |
+| **20** | **Give More Creatures Protection From Level Drain & Undead** | Independent tweak: level drain immunity for inherently-undead-immune creatures, and protection from undead for qualifying priests and paladins. Scans every v1.0 CRE in `override/`, not a fixed list. Party NPCs are excluded. | — |
 
 **Recommended install:** Component 10. Component 20 is optional but pairs well with any evil or undead-heavy playthrough.
 
@@ -107,12 +111,41 @@ Supported languages: **American English · Français · Español · Deutsch · P
 
 Under the hood, this edition uses proper WeiDU `DEFINE_PATCH_FUNCTION` routines rather than legacy macros:
 
-- **`ee_cre_cleanup.tpa`** — sweeps deprecated effect opcodes, clamps out-of-range saving throws, normalizes script resrefs and death variables to lowercase for cross-platform safety, and clamps negative XP to 0. Does not erase authored content.
+- **`ee_cre_cleanup.tpa`** — sweeps deprecated effect opcodes (142, 215, 248, 267), clamps out-of-range saving throws, normalizes script resrefs and death variables to lowercase for cross-platform safety, and clamps negative XP to 0. Does not erase authored content; the Noober-era audio purge was removed in v2.0.3.
 - **`ee_cre_fields.tpa`** — the reusable `EE_SET_CRE_FIELDS` writer. One `STR_VAR` parameter per field, never a delimited list. Used to bind Valen's script resrefs, script name, dialogue resref, and known-spells table at NI-confirmed CRE v1.0 offsets. Any future joinable-NPC conversion can adopt it.
 - **`ee_spell_cleanup.tpa`** — cleans up corrupt spell school values and out-of-bounds projectile fields inside extended spell headers.
 - **`ee_cutscene_cleanup.tpa`** — hardens `StartCutSceneMode()` transitions against timing-based engine freezes.
 
 All 2DA modifications use `PRETTY_PRINT_2DA` for column-aligned output and `BUT_ONLY_IF_IT_CHANGES` for load-order safety. No file is written to `override/` unless it was actually modified.
+
+---
+
+## Verification Checklist
+
+After installing, the following can be verified in Near Infinity. If any of these are wrong, the install did not complete correctly.
+
+**`override/valen.cre`** (the joinable Valen)
+- Name and Tooltip read *"Valen"*
+- Gender reads `FEMALE — 2` at offset `0x0238`
+- Dialogue reads `VALEN.DLG`
+- Override and Class scripts read `VALEN.BCS`
+- Script name reads `valen`
+- Known spells 1–5 read `valen.spl`, `SPCL412.spl`, `SPIN104.spl`, `SPIN105.spl`, `SPIN101.spl`
+- `# known spells` = 5
+
+**`override/c6valen.cre`** (the Chapter 6 encounter version)
+- Name reads *"Cynara"* — this is intentional and unchanged
+
+**`override/valenuh1.cre` through `valenuh4.cre`** (the vampire hunters)
+- Names read *"Buffy"*, *"Faith"*, *"Kendra"*, *"Van Helsing"*
+- Kits: Undead Hunter Paladin for the three Slayers, Cleric/Ranger for Van Helsing
+- `valenuh1` and `valenuh4` have dialogue bindings; `valenuh2` and `valenuh3` are silent by design
+
+**`override/pdialog.2da`**
+- Contains a `Valen` row with exactly 8 columns, formatted with proper column alignment
+
+**`override/valenend.2da`**
+- DEFAULT row has a resolved epilogue STRREF in both data columns
 
 ---
 
@@ -134,6 +167,7 @@ All 2DA modifications use `PRETTY_PRINT_2DA` for column-aligned output and `BUT_
 
 ## Links
 
+- [Compatibility](COMPATIBILITY.md)
 - [Full changelog](valenEE/readme-ee_updates.md)
 - [Original Valen readme](valenEE/readme-valen.txt)
 - [Report a bug or request a feature](../../issues)
