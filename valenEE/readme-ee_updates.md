@@ -24,6 +24,7 @@ This edition introduces:
 * Strict component ordering and numbering for Project Infinity metadata alignment
 * A fully sanitized, cross-platform lowercase file naming system
 * Explicit field writes on the joinable Valen CRE (`valen.cre`) — script resrefs, script name, dialogue resref, and known-spells table are written from the values already present in the mod tree, replacing the corrupted fields the original file shipped with
+* An explicit gender write so `valen.cre` is guaranteed Female regardless of the pristine file's contents
 * A CRE v1.0 format guard on every binary write, so a future Beamdog format change skips rather than corrupts
 * Load-order-safe `BUT_ONLY_IF_IT_CHANGES` guards on every 2DA and store patch
 * A reusable CRE field-writing helper (`ee_cre_fields.tpa`) that any future joinable-NPC conversion can adopt
@@ -72,13 +73,14 @@ Specific work performed at install time:
 * **Field writes on `valen.cre`.** The original file ships with a corrupt Dialogue resref (`VALE\x76` instead of `VALEN`) and a misaligned known-spells table (`\x14` in entry 0, shifting every subsequent entry by one byte). Both fields are written explicitly from the values already present in the mod tree. Values written:
   * Override script = `valen`, Class script = `valen`, Script name = `valen`, Dialogue resref = `valen`
   * Known spell 1 = `valen` (Blighted by the Sun), 2 = `SPCL412` (Set Snare), 3 = `SPIN104` (Larloch's Minor Drain), 4 = `SPIN105` (Horror), 5 = `SPIN101` (Cure Light Wounds)
+* **Display name and gender.** The joinable Valen CRE's Name and Tooltip fields are set to `setup.tra @17` (*"Valen"*), matching every line of her own dialogue. An explicit `WRITE_BYTE 0x0238 2` guarantees the CRE's gender byte is Female regardless of what the pristine file contains. The Chapter 6 encounter CRE (`c6valen.cre`) is deliberately left on `setup.tra @16` (*"Cynara"*) — that name is intentional for that specific scene.
 * **CRE v1.0 format guard.** Every binary write on `valen.cre` is wrapped in `READ_ASCII 0x04 ver (4)` + `PATCH_IF (~%ver%~ STRING_EQUAL ~V1.0~)`. `valen.cre` is CRE v1.0 on BG2EE today; the guard protects against future Beamdog format changes and prevents the writes from landing on the wrong fields if the file ever ships as v2.2. See the version-field note below.
 * **Deprecated opcode removal.** Four deprecated effect opcodes (142, 215, 248, 267) are stripped from the v1.0 CRE. These are legacy BG2 effects that do nothing on the EE engine and can confuse NI's effect viewer.
 * **Cross-platform safety.** Script resrefs and death variables are lowercased on the joinable CRE so they resolve correctly on Linux and macOS case-sensitive filesystems.
 * **XP and save clamps.** Negative XP values and out-of-range saving throws (outside EE's 0–20 bracket) are clamped to safe values.
 * **Vampire hunter scripts.** `valensla.bcs` and `valenuh4.bcs` are copied and their placeholder strrefs (`99991`–`99995`) resolved to the correct localized strrefs from `setup.tra`. The hunters announce themselves with the correct text on every language install.
 * **Portrait installation.** Large and small portraits are copied both to `override/` (for the CRE to reference) and to `portraits/` (so players can select them for their own PC).
-* **Vanilla CRE renames.** `anast.cre` gets Valen's small portrait (guarded by the same v1.0 version check); `c6valen.cre` gets Valen's display name from `setup.tra @16` (*"Cynara"*).
+* **Vanilla CRE renames.** `anast.cre` gets Valen's small portrait (guarded by the same v1.0 version check); `c6valen.cre` gets the Chapter 6 encounter display name from `setup.tra @16` (*"Cynara"*).
 * **Cutscene hardening.** The main AI script (`valen.bcs`) runs through `EE_CUTSCENE_CLEANUP` to normalize `StartCutSceneMode()` / `CutSceneId()` calls for the EE engine.
 * **Area script extensions.** `ar0902.bcs`, `ar0903.bcs`, `sht0902.bcs`, `sht0903.bcs`, and all priest AI scripts matching the regexp `.*\(PRIE\|CLER\|HEAL\|PRST\|SHAM\).*\.BCS` are extended with the appropriate scripts.
 * **2DA load-order safety.** `pdialog.2da` is appended with the Valen row and pretty-printed with `BUT_ONLY_IF_IT_CHANGES` so it isn't written to `override/` unless changed. `valenend.2da` is written with both DEFAULT data columns replaced by the same resolved epilogue STRREF.
@@ -123,7 +125,9 @@ Every user-facing string in the mod is delivered through the TRA system:
 
 * **Component names** in the WeiDU installer menu (`@1000` and `@1001` in each `setup.tra`)
 * **`REQUIRE_PREDICATE` failure messages** (`@1002` — the "requires BG2EE or EET" text)
-* **Valen's display name and biography** (`@15`, `@16`)
+* **Valen's biography** (`@15`)
+* **Chapter 6 encounter display name** (`@16` = *"Cynara"*)
+* **Joinable Valen display name** (`@17` = *"Valen"*)
 * **All item names and descriptions** for Valen's Armor and Claws tiers
 * **Spell names** for Blighted by the Sun and Gaseous Form
 * **Vampire hunter names and barks**
@@ -149,6 +153,8 @@ Ten languages ship with the mod. Non-English installs layer the English `setup.t
 ### Adding a New Language
 
 Drop a `setup.tra` into a new folder under `valenEE/tra/`, add the matching `epilogue.tra` if you want to translate the ToB epilogue, and add one `LANGUAGE` line to the TP2. The English base layer fills any gaps.
+
+**Translator note:** `@17 = ~Valen~` was added in v2.0.5 and currently exists only in the American base. Non-English installs fall back to the English string automatically. If you want to localize it, add `@17` to your language's `setup.tra` with the character's name in your language.
 
 ------------------------------
 
@@ -205,21 +211,23 @@ When prompted for language, choose your preferred language. Non-translated strin
 
 After installation, the following can be verified in Near Infinity:
 
-* **`override/valen.cre`** — Version reads `V1.0`. Dialogue reads `VALEN.DLG`. Override script and Class script read `VALEN.BCS`. Script name reads `valen`. Small portrait = `VALENS.BMP`, Large portrait = `VALENL.BMP`. Animation = `THIEF_FEMALE_HUMAN — 0x6310`. HP = 70/70.
+* **`override/valen.cre`** — Name and Tooltip read *"Valen"*. Version reads `V1.0`. Gender reads `FEMALE — 2` at offset `0x0238`. Dialogue reads `VALEN.DLG`. Override script and Class script read `VALEN.BCS`. Script name reads `valen`. Small portrait = `VALENS.BMP`, Large portrait = `VALENL.BMP`. Animation = `THIEF_FEMALE_HUMAN — 0x6310`. HP = 70/70.
 * **`override/valen.cre` known spells** — Entries 1–5 read `valen.spl` (Blighted by the Sun), `SPCL412.spl` (Set Snare), `SPIN104.spl` (Larloch's Minor Drain), `SPIN105.spl` (Horror), `SPIN101.spl` (Cure Light Wounds). `# known spells` = 5.
-* **`override/valen.cre` sound slots** — `LEADER` = *"Of course. I'm the best choice."* `TIRED` = *"I must rest soon. I am weak when I am tired."* `BORED` = *"There're far better things to do than sit and wait."* `BATTLE_CRY1` = *"You are foolish to face my mistress!"* `BATTLE_CRY2` = *"You will fall by my hand!"* `HURT` = *"I will require healing as soon as possible."* `SELECT_COMMON1` = *"I serve my mistress, and no other."* `SELECT_ACTION1` = *"It will be done."* Every other slot reads *"No such index"* or resolves to an empty strref. (Note: the shipped valen.cre barks were never erased by our cleanup — if any slot reads blank after install, that is a real bug worth reporting; the v2.0.3 removal of the Noober-era audio purge was specifically to keep these slots intact.)
+* **`override/valen.cre` sound slots** — `LEADER` = *"Of course. I'm the best choice."* `TIRED` = *"I must rest soon. I am weak when I am tired."* `BORED` = *"There're far better things to do than sit and wait."* `BATTLE_CRY1` = *"You are foolish to face my mistress!"* `BATTLE_CRY4` = *"You will fall by my hand!"* `HURT` = *"I will require healing as soon as possible."* `SELECT_COMMON1` = *"I serve my mistress, and no other."* `SELECT_ACTION1` = *"It will be done."* Every other slot reads *"No such index"* or resolves to an empty strref.
+* **`override/c6valen.cre`** — Name reads *"Cynara"*. This is intentional for the Chapter 6 encounter.
+* **`override/anast.cre`** — Small portrait reads `VALENS`.
+* **`override/valenuh1.cre` through `valenuh4.cre`** — Names read *"Buffy"*, *"Faith"*, *"Kendra"*, *"Van Helsing"*. Each has the correct kit (Undead Hunter Paladin for the three Slayers, Cleric/Ranger for Van Helsing), correct gender, and correct script assignments. `valenuh1` and `valenuh4` have dialogue bindings; `valenuh2` and `valenuh3` are silent by design.
 * **`override/pdialog.2da`** — Contains a `Valen` row with exactly eight columns (identifier + seven data values), formatted with proper column alignment.
 * **`override/valenend.2da`** — DEFAULT row has a resolved epilogue STRREF in both data columns, formatted with proper column alignment.
-* **`override/anast.cre`** — Small portrait reads `VALENS`.
-* **`override/c6valen.cre`** — Name reads *"Cynara"*.
 * **WeiDU installer menu** — Component names display in the selected language (falls back to English for any ref not yet translated in that language's `setup.tra`).
 
 **In-game smoke test.** Recruit Valen, spawn a fight, and confirm:
 
-1. Her Set Snare ability fires (click the ability icon).
-2. Her Larloch's Minor Drain, Horror, and Cure Light Wounds fire from AI (`valen.bcs`) when conditions warrant — these are script-driven, not player-castable.
-3. Clicking her portrait plays her SELECT_COMMON barks.
-4. She joins the party via the correct dialogue (`valen.dlg`).
+1. Her portrait tooltip and party bar show *"Valen"*, not *"Cynara"*.
+2. Her Set Snare ability fires (click the ability icon).
+3. Her Larloch's Minor Drain, Horror, and Cure Light Wounds fire from AI (`valen.bcs`) when conditions warrant — these are script-driven, not player-castable.
+4. Clicking her portrait plays her SELECT_COMMON barks.
+5. She joins the party via the correct dialogue (`valen.dlg`).
 
 **Important:** use a fresh save created after this install when diagnosing any in-game display, dialogue, or bark bug. BG saves embed strref *numbers*, not strings; a save made under an earlier install can show unrelated text even when the current install is correct. See Rule 30b.
 
@@ -244,6 +252,24 @@ After installation, the following can be verified in Near Infinity:
 ------------------------------
 
 ## Changelog
+
+### 2.0.5 — Name and gender corrections on the joinable Valen CRE
+
+**Name fix**
+
+* The joinable Valen CRE (`valen.cre`) was being named `setup.tra @16` (*"Cynara"*), which is the display name for the Chapter 6 encounter CRE (`c6valen.cre`). Applying that name to the joinable NPC made the party UI and portrait tooltip read *"Cynara"* while every line of Valen's own dialogue (`valen.tra`, `valenint.tra`, `valentob.tra`) referred to her as *"Valen"*.
+* Added `@17 = ~Valen~` to `setup.tra`. The joinable `valen.cre` COPY block now uses `SAY NAME1 @17 SAY NAME2 @17`.
+* The `c6valen.cre` block retains `SAY NAME1 @16 SAY NAME2 @16` — the Chapter 6 encounter display name is intentional and unchanged.
+* Non-English installs fall back to the English `@17` automatically through the layered LANGUAGE blocks. Translators can add a localized `@17` to their own `setup.tra` at their own pace.
+
+**Gender fix**
+
+* Added an explicit `WRITE_BYTE 0x0238 2` inside the CRE v1.0 guard on `valen.cre`. CRE v1.0 stores gender in a single byte at `0x0238` (1 = Male, 2 = Female, 3 = Neither). The shipped file already reads 2, so this is a defensive write to prevent drift if the pristine file is ever regenerated from a Male template.
+* No separate Sex field exists in CRE v1.0; `0x0238` is the only gender-related field.
+
+**Verification performed**
+
+* Confirmed in Near Infinity that all four vampire hunters (`valenuh1`–`valenuh4`) are unchanged and correct: names, kits (Undead Hunter Paladin for Buffy/Faith/Kendra, Cleric/Ranger for Van Helsing), genders, scripts, dialogue bindings, and known-spells tables all match the original mod's design.
 
 ### 2.0.4 — Explicit CRE field writes
 
