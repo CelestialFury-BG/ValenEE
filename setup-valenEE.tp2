@@ -48,16 +48,38 @@
  *           dialogue_resref = valen
  *           ks_list         = valen,SPCL412,SPIN104,SPIN105,SPIN101
  *         No heuristic recovery — values are written explicitly at
- *         the offsets NI confirms for CRE v1.0. This also removes
- *         the temptation to bake Valen-specific data into a shared
- *         cleanup library: ee_cre_cleanup.tpa handles EE-format
- *         compatibility, ee_cre_fields.tpa is a generic writer, and
- *         the mod-specific values live only in this TP2.
+ *         the offsets NI confirms for CRE v1.0.
+ *
+ * v2.0.5  Two name/gender corrections on the main valen.cre.
+ *
+ *           - Name was being set to setup.tra @16 ("Cynara"), which
+ *             is the display name for the Chapter 6 encounter CRE
+ *             (C6VALEN.CRE). That name is correct for that specific
+ *             encounter, but the joinable NPC is simply "Valen"
+ *             throughout valen.tra — she refers to herself as Valen
+ *             in her own dialogue, and every other NPC addresses her
+ *             as Valen. Using @16 on the joinable CRE made the party
+ *             UI and floating name read "Cynara" while the dialogue
+ *             said "Valen".
+ *
+ *             Fix: added @17 = ~Valen~ to setup.tra. The main
+ *             valen.cre block now uses @17 for SAY NAME1/NAME2.
+ *             The c6valen.cre block below still uses @16 and is
+ *             unchanged — the Chapter 6 encounter display name is
+ *             intentional.
+ *
+ *           - Added an explicit WRITE_BYTE 0x0238 2 inside the v1.0
+ *             guard so the CRE's gender byte is guaranteed to be
+ *             Female (2) regardless of what the pristine file
+ *             contains. The shipped valen.cre already reads 2, so
+ *             this is a defensive write, not a repair. CRE v1.0 has
+ *             a single gender byte at 0x0238 (1 = Male, 2 = Female,
+ *             3 = Neither); there is no separate Sex field to set.
  *************************************************************************/
 
 BACKUP ~valenEE/backup~
 AUTHOR ~weimer@cs.berkeley.edu~
-VERSION ~v2.0.4~
+VERSION ~v2.0.5~
 
 // Handle UTF-8 and non-English encodings natively across platforms
 HANDLE_CHARSETS
@@ -189,9 +211,6 @@ COPY ~valenEE/graphics/valens.bmp~ ~override/valens.bmp~
 ///////////////////////////////////////////////////////////////////////
 
 // Valen - the main joinable NPC.
-// Original used SAY BIO only; we add SAY NAME1/NAME2 for consistency
-// with the Solaufein modernization, using setup.tra @16 ("Cynara") as
-// the display name and @15 for the biography.
 //
 // Rule 12/13: Before running EE_CRE_CLEANUP on valen.cre, we read the
 // CRE format version field at 0x04. This is a 4-byte ASCII string in
@@ -210,15 +229,21 @@ COPY ~valenEE/graphics/valens.bmp~ ~override/valens.bmp~
 //
 // FIXED (v1.0.4): Added EE_SET_CRE_FIELDS call to write the fields
 // we know should be in valen.cre (scripts, script name, dialogue,
-// known spells) at their NI-confirmed v1.0 offsets. This replaces the
-// abandoned heuristic-recovery approach — we know every value, so we
-// write it explicitly rather than trying to reconstruct it.
+// known spells) at their NI-confirmed v1.0 offsets.
+//
+// FIXED (v1.0.5): Name is now @17 = ~Valen~ instead of @16 = ~Cynara~.
+// @16 is the display name for the Chapter 6 encounter CRE and remains
+// in use there. Also added an explicit gender write at 0x0238.
 WITH_TRA ~valenEE/tra/%LANGUAGE%/setup.tra~ BEGIN
   COPY ~valenEE/creatures/valen.cre~ ~override/valen.cre~
-    SAY NAME1 @16 SAY NAME2 @16
+    SAY NAME1 @17 SAY NAME2 @17
     SAY BIO @15
     READ_ASCII 0x04 cre_ver (4)
     PATCH_IF (~%cre_ver%~ STRING_EQUAL ~V1.0~) BEGIN
+
+      // Explicit gender byte. CRE v1.0 has one gender field at
+      // 0x0238: 1 = Male, 2 = Female, 3 = Neither. Valen is Female.
+      WRITE_BYTE 0x0238 2
 
       // Generic EE-format cleanup (deprecated opcodes, casing).
       LPF EE_CRE_CLEANUP END
@@ -249,8 +274,7 @@ END
 // Vanilla ANAST.CRE — repurposed with Valen's small portrait.
 // FIXED (v1.0.1): version check switched from READ_LONG+integer to
 // READ_ASCII+STRING_EQUAL to match the CRE version field's actual
-// storage format. The previous check always failed and silently
-// skipped the portrait write.
+// storage format.
 ACTION_IF FILE_EXISTS_IN_GAME ~anast.cre~ BEGIN
   COPY_EXISTING ~anast.cre~ ~override/anast.cre~
     READ_ASCII 0x04 cre_ver (4)
@@ -260,8 +284,9 @@ ACTION_IF FILE_EXISTS_IN_GAME ~anast.cre~ BEGIN
     BUT_ONLY_IF_IT_CHANGES
 END
 
-// Vanilla C6VALEN.CRE — renamed via @16. Uses format-aware SAY so the
-// write works regardless of CRE version.
+// Vanilla C6VALEN.CRE — Chapter 6 encounter version. Deliberately
+// renamed via @16 ("Cynara"). Do NOT change this to @17; the
+// difference is the design.
 ACTION_IF FILE_EXISTS_IN_GAME ~c6valen.cre~ BEGIN
   WITH_TRA ~valenEE/tra/%LANGUAGE%/setup.tra~ BEGIN
     COPY_EXISTING ~c6valen.cre~ ~override/c6valen.cre~
@@ -468,15 +493,11 @@ COPY ~valenEE/items/levimm.itm~ ~override~
 // FIXED (v1.0.1): Original guard used READ_LONG + integer comparison
 // against 0x00000001. The CRE version field is stored as ASCII, so
 // READ_LONG returned 0x302E3156 ("V1.0" little-endian) and the guard
-// always failed, silently skipping every CRE. This is why no CREs were
-// patched in the initial test install despite the log reporting
-// "Copying and patching 4758 files".
+// always failed, silently skipping every CRE.
 //
 // FIXED (v1.0.2): SOURCE_SIZE guard was >0x274, which protected the
 // early reads but not the later READ_ASCII 0x280 deathvar (32 bytes,
-// needs file size >= 0x2A0). A truncated v1.0 CRE between 0x275 and
-// 0x29F would abort the install with "illegal N-byte read". Bumped to
-// >=0x2A0.
+// needs file size >= 0x2A0). Bumped to >=0x2A0.
 COPY_EXISTING_REGEXP GLOB ~.*\.cre~ ~override~
   PATCH_IF (SOURCE_SIZE >= 0x2A0) BEGIN
     READ_ASCII 0x04 cre_version (4)
