@@ -1,0 +1,108 @@
+//////////////////////////////////////////////////////////////
+// EE_CRE_CLEANUP — Modern Creature Auto-Patcher for EE/EET //
+//                                                          //
+// Version history:                                         //
+//   v1.0.0  Initial version.                               //
+//   v1.0.1  (TP2-side fix only — see setup-valenEE.tp2.)    //
+//   v1.0.3  Removed the Noober-era audio-purge block. It   //
+//           had no EE-compatibility role, was introduced   //
+//           for a different mod, and was silently muting   //
+//           every sound slot on Valen (all "No such        //
+//           index" in NI). Removed outright rather than    //
+//           narrowed — a "targeted" version would still    //
+//           wipe barks that another mod installed into     //
+//           valen.cre after ours.                          //
+//   v1.0.5  Removed the animation-ID remapping block. It   //
+//           was a BG1-mod leftover: it read from 0x20,     //
+//           which NI confirms is the Permanent status      //
+//           flags dword, not Animation; used SHORT where   //
+//           the field is LONG; wrote back to the same      //
+//           wrong offset at the same wrong width; and its  //
+//           PATCH_MATCH cases were all BG1 animation IDs   //
+//           (0x6400, 0x6700, 0x6C00, 0x6D00, 0x7A00)      //
+//           that never appear in a BG2EE install. Inert    //
+//           on every file tested (Valen's animation is     //
+//           0x6310 = THIEF_FEMALE_HUMAN; no case matched;  //
+//           DEFAULT restored the read value), but a live   //
+//           write hazard if a future file's status-flag    //
+//           low word happened to equal one of the cases.   //
+//                                                          //
+//           NI reference (valen.cre, CRE v1.0):            //
+//             0x20  Permanent status flags  (4 bytes)      //
+//             0x24  Current HP              (2 bytes)      //
+//             0x26  Maximum HP              (2 bytes)      //
+//             0x28  Animation               (4 bytes)      //
+//                                                    ^^^^  //
+//           Animation is at 0x28, 4 bytes wide. The        //
+//           block was reading/writing 0x20, which is       //
+//           inside the status flags. Because Animation     //
+//           field values in a BG2EE install are always     //
+//           BG2-range IDs, no remap is needed at all —     //
+//           the block was solving a problem that only      //
+//           exists on the BG1 engine. Deleted rather       //
+//           than corrected, per Rule 60 (remove, not       //
+//           narrow, a block whose intent was wrong).       //
+//////////////////////////////////////////////////////////////
+
+DEFINE_PATCH_FUNCTION EE_CRE_CLEANUP BEGIN
+
+  //////////////////////////////////////////////////////////
+  // 1. Remove Deprecated Effects Safely
+  //////////////////////////////////////////////////////////
+  LPF DELETE_EFFECT INT_VAR match_opcode = 142 END // old portrait icon
+  LPF DELETE_EFFECT INT_VAR match_opcode = 215 END // old proficiency effect
+  LPF DELETE_EFFECT INT_VAR match_opcode = 248 END // removed engine effect
+  LPF DELETE_EFFECT INT_VAR match_opcode = 267 END // removed engine effect
+
+  //////////////////////////////////////////////////////////
+  // 2. Normalize Script Names (Enforce Lowercase for Linux)
+  //////////////////////////////////////////////////////////
+  SET script_offsets_count = 6
+  PATCH_DEFINE_ARRAY script_slots BEGIN 0x248 0x250 0x258 0x260 0x268 0x270 END
+
+  FOR (i = 0; i < script_offsets_count; ++i) BEGIN
+    SET offset = $script_slots(~%i%~)
+    PATCH_IF (offset > 0) BEGIN
+      READ_ASCII offset scr (8)
+      PATCH_IF (NOT ~%scr%~ STRING_EQUAL ~~) BEGIN
+        TO_LOWER scr
+        WRITE_ASCIIE offset ~%scr%~ #8
+      END
+    END
+  END
+
+  //////////////////////////////////////////////////////////
+  // 3. Normalize Death Variables (lowercase, cross-platform safe)
+  //////////////////////////////////////////////////////////
+  READ_ASCII 0x280 deathvar (32)
+  PATCH_IF (NOT ~%deathvar%~ STRING_EQUAL ~~) BEGIN
+    TO_LOWER deathvar
+    WRITE_ASCIIE 0x280 ~%deathvar%~ #32
+  END
+
+  //////////////////////////////////////////////////////////
+  // 4. Ensure CRE has valid XP and saving throws
+  //////////////////////////////////////////////////////////
+  READ_LONG 0x2CC xp
+  PATCH_IF (xp < 0) BEGIN
+    WRITE_LONG 0x2CC 0
+  END
+
+  // Fix invalid saving throws (EE clamps to 0–20)
+  SET save_offsets_count = 5
+  PATCH_DEFINE_ARRAY save_offsets BEGIN 0x2D0 0x2D2 0x2D4 0x2D6 0x2D8 END
+
+  FOR (j = 0; j < save_offsets_count; ++j) BEGIN
+    SET offset = $save_offsets(~%j%~)
+    PATCH_IF (offset > 0) BEGIN
+      READ_SHORT offset sv
+      PATCH_IF (sv < 0) BEGIN
+        WRITE_SHORT offset 10
+      END
+      PATCH_IF (sv > 20) BEGIN
+        WRITE_SHORT offset 20
+      END
+    END
+  END
+
+END
