@@ -1,0 +1,246 @@
+//////////////////////////////////////////////////////////////
+// EE_CRE_CLEANUP — Modern Creature Auto-Patcher for EE/EET //
+//                                                          //
+// Version history:                                         //
+//   v1.0.0  Initial version.                               //
+//   v1.0.1  (TP2-side fix only — see setup-valenEE.tp2.)    //
+//   v1.0.3  Removed the Noober-era audio-purge block. It   //
+//           had no EE-compatibility role, was introduced   //
+//           for a different mod, and was silently muting   //
+//           every sound slot on Valen (all "No such        //
+//           index" in NI). Removed outright rather than    //
+//           narrowed — a "targeted" version would still    //
+//           wipe barks that another mod installed into     //
+//           valen.cre after ours.                          //
+//   v1.0.5  Removed the animation-ID remapping block. It   //
+//           was a BG1-mod leftover: it read from 0x20,     //
+//           which NI confirms is the Permanent status      //
+//           flags dword, not Animation; used SHORT where   //
+//           the field is LONG; wrote back to the same      //
+//           wrong offset at the same wrong width; and its  //
+//           PATCH_MATCH cases were all BG1 animation IDs   //
+//           (0x6400, 0x6700, 0x6C00, 0x6D00, 0x7A00)      //
+//           that never appear in a BG2EE install. Inert    //
+//           on every file tested (Valen's animation is     //
+//           0x6310 = THIEF_FEMALE_HUMAN; no case matched;  //
+//           DEFAULT restored the read value), but a live   //
+//           write hazard if a future file's status-flag    //
+//           low word happened to equal one of the cases.   //
+//                                                          //
+//           NI reference (valen.cre, CRE v1.0):            //
+//             0x20  Permanent status flags  (4 bytes)      //
+//             0x24  Current HP              (2 bytes)      //
+//             0x26  Maximum HP              (2 bytes)      //
+//             0x28  Animation               (4 bytes)      //
+//                                                    ^^^^  //
+//           Animation is at 0x28, 4 bytes wide. The        //
+//           block was reading/writing 0x20, which is       //
+//           inside the status flags. Because Animation     //
+//           field values in a BG2EE install are always     //
+//           BG2-range IDs, no remap is needed at all —     //
+//           the block was solving a problem that only      //
+//           exists on the BG1 engine. Deleted rather       //
+//           than corrected, per Rule 60 (remove, not       //
+//           narrow, a block whose intent was wrong).       //
+//   v1.0.6  Added EE_COMPACT_KNOWN_SPELLS. Removes         //
+//           known-spells entries with empty resrefs and    //
+//           shifts the remaining entries left. Fixes the   //
+//           2010-era blank entry at index 0 that Near      //
+//           Infinity renders as "Spell: 0.SPL". Not        //
+//           called by EE_CRE_CLEANUP itself; callers       //
+//           invoke it explicitly on the CREs that ship     //
+//           with the phantom entry (sola5-17, solafoe,     //
+//           solavamp, udsola01/02).                        //
+//   v1.0.7  Fixed XP offset in EE_CRE_CLEANUP section 4.   //
+//           The block previously read/wrote 0x2CC, which   //
+//           on CRE v1.0 is the Dialogue resref, not XP.    //
+//           It never fired in practice (it interpreted     //
+//           the first four ASCII bytes of the dialogue     //
+//           resref as a positive signed long, so xp < 0   //
+//           was never true), and EE_SET_CRE_FIELDS runs    //
+//           after EE_CRE_CLEANUP and restores the          //
+//           dialogue resref regardless. But the offset    //
+//           was wrong. Correct location for XP on CRE      //
+//           v1.0 is 0x0014, per IESDP.                     //
+//                                                          //
+// KNOWN OPEN ITEM (not addressed in this revision):        //
+//   The saving-throw offsets (0x2D0..0x2D8) below overlap  //
+//   the tail of the Dialogue resref field (0x2CC + 8 =     //
+//   0x2D4) as documented in this file's own header table.  //
+//   If the header table is authoritative, the save-offset  //
+//   array is misaligned by 4 bytes and should start at     //
+//   0x2D4. If the save-offset array is authoritative, the  //
+//   header table's Dialogue width is wrong. One of the     //
+//   two is off. This was not resolved in v1.0.7 to keep    //
+//   the diff scoped to the XP fix. Verify against a        //
+//   pristine CRE in Near Infinity before changing either.  //
+//////////////////////////////////////////////////////////////
+
+DEFINE_PATCH_FUNCTION EE_CRE_CLEANUP BEGIN
+
+  //////////////////////////////////////////////////////////
+  // 1. Remove Deprecated Effects Safely
+  //////////////////////////////////////////////////////////
+  LPF DELETE_EFFECT INT_VAR match_opcode = 142 END // old portrait icon
+  LPF DELETE_EFFECT INT_VAR match_opcode = 215 END // old proficiency effect
+  LPF DELETE_EFFECT INT_VAR match_opcode = 248 END // removed engine effect
+  LPF DELETE_EFFECT INT_VAR match_opcode = 267 END // removed engine effect
+
+  //////////////////////////////////////////////////////////
+  // 2. Normalize Script Names (Enforce Lowercase for Linux)
+  //////////////////////////////////////////////////////////
+  SET script_offsets_count = 6
+  PATCH_DEFINE_ARRAY script_slots BEGIN 0x248 0x250 0x258 0x260 0x268 0x270 END
+
+  FOR (i = 0; i < script_offsets_count; ++i) BEGIN
+    SET offset = $script_slots(~%i%~)
+    PATCH_IF (offset > 0) BEGIN
+      READ_ASCII offset scr (8)
+      PATCH_IF (NOT ~%scr%~ STRING_EQUAL ~~) BEGIN
+        TO_LOWER scr
+        WRITE_ASCIIE offset ~%scr%~ #8
+      END
+    END
+  END
+
+  //////////////////////////////////////////////////////////
+  // 3. Normalize Death Variables (lowercase, cross-platform safe)
+  //////////////////////////////////////////////////////////
+  READ_ASCII 0x280 deathvar (32)
+  PATCH_IF (NOT ~%deathvar%~ STRING_EQUAL ~~) BEGIN
+    TO_LOWER deathvar
+    WRITE_ASCIIE 0x280 ~%deathvar%~ #32
+  END
+
+  //////////////////////////////////////////////////////////
+  // 4. Ensure CRE has valid XP and saving throws
+  //
+  // FIXED in v1.0.7: XP offset corrected from 0x2CC to 0x14.
+  // 0x2CC on CRE v1.0 is the Dialogue resref, not XP.
+  // The previous read was harmless in practice (dialogue
+  // ASCII parses as a positive signed long, so xp < 0 was
+  // never true) but the write hazard was latent. See the
+  // v1.0.7 version-history entry for details.
+  //////////////////////////////////////////////////////////
+  READ_LONG 0x14 xp
+  PATCH_IF (xp < 0) BEGIN
+    WRITE_LONG 0x14 0
+  END
+
+  // Fix invalid saving throws (EE clamps to 0–20)
+  SET save_offsets_count = 5
+  PATCH_DEFINE_ARRAY save_offsets BEGIN 0x2D0 0x2D2 0x2D4 0x2D6 0x2D8 END
+
+  FOR (j = 0; j < save_offsets_count; ++j) BEGIN
+    SET offset = $save_offsets(~%j%~)
+    PATCH_IF (offset > 0) BEGIN
+      READ_SHORT offset sv
+      PATCH_IF (sv < 0) BEGIN
+        WRITE_SHORT offset 10
+      END
+      PATCH_IF (sv > 20) BEGIN
+        WRITE_SHORT offset 20
+      END
+    END
+  END
+
+END
+
+
+//////////////////////////////////////////////////////////////
+// EE_COMPACT_KNOWN_SPELLS
+//
+// Removes known-spells entries whose resref is not a real
+// resref and shifts the remaining entries left to close the
+// gap. Decrements the known-spells count at 0x2A4.
+//
+// Purpose: the 2010-era Solaufein CREs (sola5-17, solafoe,
+// solavamp, udsola01/02) ship with a phantom entry at
+// known-spell index 0. Its resref is a control byte followed
+// by nulls (Near Infinity renders it as "Spell: 0.SPL"), but
+// its level and type fields are set, so the entry inflates
+// the count and shifts every subsequent entry's index. The
+// engine ignores such entries, so removing them has no
+// gameplay effect; it cleans up NI's display and keeps the
+// table internally consistent.
+//
+// Detection: WE CANNOT COMPARE THE FULL 8-BYTE RESREF TO ~~.
+// WeiDU's READ_ASCII reads exactly 8 bytes, including nulls
+// and control characters, so a phantom resref like
+// \x14\x00\x00\x00\x00\x00\x00\x00 reads back as a
+// non-empty 8-byte string that fails the ~~ comparison.
+// Instead we check the first byte directly. A valid resref
+// starts with a printable ASCII character in 0x21-0x7E.
+// A phantom entry starts with a control byte (0x00 or 0x14).
+//
+// Safe for BG2 CRE v1.0. Do NOT run against v2.2.
+//
+// Idempotent: running twice on the same file produces no
+// second-pass changes because the count field is only
+// written when at least one entry was removed or shifted.
+//////////////////////////////////////////////////////////////
+
+DEFINE_PATCH_FUNCTION EE_COMPACT_KNOWN_SPELLS BEGIN
+
+  READ_LONG 0x2A0 ks_off
+  READ_LONG 0x2A4 ks_count
+
+  PATCH_IF (ks_off > 0 AND ks_count > 1) BEGIN
+
+    SET kept    = 0
+    SET scan    = 0
+    SET changed = 0
+
+    WHILE (scan < ks_count) BEGIN
+
+      SET src_eo = ks_off + (scan * 12)
+
+      // Check first byte of the 8-byte resref field.
+      READ_BYTE src_eo ks_first_byte
+
+      SET is_valid = 0
+      PATCH_IF (ks_first_byte >= 0x21 AND ks_first_byte <= 0x7E) BEGIN
+        SET is_valid = 1
+      END
+
+      PATCH_IF (is_valid = 1) BEGIN
+
+        PATCH_IF (scan != kept) BEGIN
+          SET dst_eo = ks_off + (kept * 12)
+          READ_LONG src_eo       w0
+          READ_LONG (src_eo + 4) w1
+          READ_LONG (src_eo + 8) w2
+          WRITE_LONG dst_eo       w0
+          WRITE_LONG (dst_eo + 4) w1
+          WRITE_LONG (dst_eo + 8) w2
+          SET changed = 1
+        END
+
+        SET kept = kept + 1
+
+      END ELSE BEGIN
+        SET changed = 1
+      END
+
+      SET scan = scan + 1
+
+    END
+
+    PATCH_IF (changed = 1) BEGIN
+
+      SET z = kept
+      WHILE (z < ks_count) BEGIN
+        SET z_eo = ks_off + (z * 12)
+        WRITE_LONG z_eo       0
+        WRITE_LONG (z_eo + 4) 0
+        WRITE_LONG (z_eo + 8) 0
+        SET z = z + 1
+      END
+
+      WRITE_LONG 0x2A4 kept
+
+    END
+
+  END
+
+END

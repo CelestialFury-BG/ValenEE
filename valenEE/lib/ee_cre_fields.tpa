@@ -1,0 +1,171 @@
+//////////////////////////////////////////////////////////////
+// EE_SET_CRE_FIELDS - Reusable CRE v1.0 field writer.
+//
+// Writes script resrefs, script name, dialogue resref, and
+// a known-spells table at canonical v1.0 offsets.
+//
+// Offsets (verified in NI against valen.cre):
+//   0x248  Override script  (8 bytes)
+//   0x250  Class script     (8 bytes)
+//   0x258  Race script      (8 bytes)
+//   0x260  General script   (8 bytes)
+//   0x268  Default script   (8 bytes)
+//   0x280  Script name      (32 bytes)
+//   0x2CC  Dialogue resref  (8 bytes)
+//
+// Known spells are passed one per parameter (ks1..ks8).
+// Empty parameters are skipped. The table is written at
+// the offset stored in 0x2A0; each entry is 12 bytes
+// (resref 8 + level 2 + type 2). All entries get level 0,
+// type 2 (innate). The count field at 0x2A4 is updated.
+//
+// Slots valid under the OLD count but unused under the new
+// count are zeroed. Slots beyond the original count are
+// never written.
+//
+// Caller MUST gate this on the file being CRE v1.0.
+//
+// CRE v1.0 ONLY. Do NOT run against v2.2.
+//////////////////////////////////////////////////////////////
+
+DEFINE_PATCH_FUNCTION EE_SET_CRE_FIELDS
+  STR_VAR override_script = ~~
+          class_script    = ~~
+          race_script     = ~~
+          general_script  = ~~
+          default_script  = ~~
+          script_name     = ~~
+          dialogue_resref = ~~
+          ks1             = ~~
+          ks2             = ~~
+          ks3             = ~~
+          ks4             = ~~
+          ks5             = ~~
+          ks6             = ~~
+          ks7             = ~~
+          ks8             = ~~
+BEGIN
+
+  // --- Script resrefs ---
+  PATCH_IF (NOT ~%override_script%~ STRING_EQUAL ~~) BEGIN
+    TO_LOWER override_script
+    WRITE_ASCIIE 0x248 ~%override_script%~ #8
+  END
+  PATCH_IF (NOT ~%class_script%~ STRING_EQUAL ~~) BEGIN
+    TO_LOWER class_script
+    WRITE_ASCIIE 0x250 ~%class_script%~ #8
+  END
+  PATCH_IF (NOT ~%race_script%~ STRING_EQUAL ~~) BEGIN
+    TO_LOWER race_script
+    WRITE_ASCIIE 0x258 ~%race_script%~ #8
+  END
+  PATCH_IF (NOT ~%general_script%~ STRING_EQUAL ~~) BEGIN
+    TO_LOWER general_script
+    WRITE_ASCIIE 0x260 ~%general_script%~ #8
+  END
+  PATCH_IF (NOT ~%default_script%~ STRING_EQUAL ~~) BEGIN
+    TO_LOWER default_script
+    WRITE_ASCIIE 0x268 ~%default_script%~ #8
+  END
+
+  // --- Script name (32 bytes) ---
+  PATCH_IF (NOT ~%script_name%~ STRING_EQUAL ~~) BEGIN
+    TO_LOWER script_name
+    WRITE_ASCIIE 0x280 ~%script_name%~ #32
+  END
+
+  // --- Dialogue resref (8 bytes) ---
+  PATCH_IF (NOT ~%dialogue_resref%~ STRING_EQUAL ~~) BEGIN
+    TO_LOWER dialogue_resref
+    WRITE_ASCIIE 0x2CC ~%dialogue_resref%~ #8
+  END
+
+  // --- Known spells ---
+  PATCH_IF (NOT ~%ks1%~ STRING_EQUAL ~~) BEGIN
+
+    READ_LONG 0x2A0 ks_off
+    READ_LONG 0x2A4 old_ks_count
+
+    PATCH_IF (ks_off > 0 AND old_ks_count > 0) BEGIN
+
+      SET ks_count = 0
+
+      PATCH_IF (ks_count < old_ks_count AND NOT ~%ks1%~ STRING_EQUAL ~~) BEGIN
+        TO_LOWER ks1
+        SET eo = ks_off + (ks_count * 12)
+        WRITE_ASCIIE eo ~%ks1%~ #8
+        WRITE_SHORT (eo + 8) 0
+        WRITE_SHORT (eo + 10) 2
+        SET ks_count = ks_count + 1
+      END
+      PATCH_IF (ks_count < old_ks_count AND NOT ~%ks2%~ STRING_EQUAL ~~) BEGIN
+        TO_LOWER ks2
+        SET eo = ks_off + (ks_count * 12)
+        WRITE_ASCIIE eo ~%ks2%~ #8
+        WRITE_SHORT (eo + 8) 0
+        WRITE_SHORT (eo + 10) 2
+        SET ks_count = ks_count + 1
+      END
+      PATCH_IF (ks_count < old_ks_count AND NOT ~%ks3%~ STRING_EQUAL ~~) BEGIN
+        TO_LOWER ks3
+        SET eo = ks_off + (ks_count * 12)
+        WRITE_ASCIIE eo ~%ks3%~ #8
+        WRITE_SHORT (eo + 8) 0
+        WRITE_SHORT (eo + 10) 2
+        SET ks_count = ks_count + 1
+      END
+      PATCH_IF (ks_count < old_ks_count AND NOT ~%ks4%~ STRING_EQUAL ~~) BEGIN
+        TO_LOWER ks4
+        SET eo = ks_off + (ks_count * 12)
+        WRITE_ASCIIE eo ~%ks4%~ #8
+        WRITE_SHORT (eo + 8) 0
+        WRITE_SHORT (eo + 10) 2
+        SET ks_count = ks_count + 1
+      END
+      PATCH_IF (ks_count < old_ks_count AND NOT ~%ks5%~ STRING_EQUAL ~~) BEGIN
+        TO_LOWER ks5
+        SET eo = ks_off + (ks_count * 12)
+        WRITE_ASCIIE eo ~%ks5%~ #8
+        WRITE_SHORT (eo + 8) 0
+        WRITE_SHORT (eo + 10) 2
+        SET ks_count = ks_count + 1
+      END
+      PATCH_IF (ks_count < old_ks_count AND NOT ~%ks6%~ STRING_EQUAL ~~) BEGIN
+        TO_LOWER ks6
+        SET eo = ks_off + (ks_count * 12)
+        WRITE_ASCIIE eo ~%ks6%~ #8
+        WRITE_SHORT (eo + 8) 0
+        WRITE_SHORT (eo + 10) 2
+        SET ks_count = ks_count + 1
+      END
+      PATCH_IF (ks_count < old_ks_count AND NOT ~%ks7%~ STRING_EQUAL ~~) BEGIN
+        TO_LOWER ks7
+        SET eo = ks_off + (ks_count * 12)
+        WRITE_ASCIIE eo ~%ks7%~ #8
+        WRITE_SHORT (eo + 8) 0
+        WRITE_SHORT (eo + 10) 2
+        SET ks_count = ks_count + 1
+      END
+      PATCH_IF (ks_count < old_ks_count AND NOT ~%ks8%~ STRING_EQUAL ~~) BEGIN
+        TO_LOWER ks8
+        SET eo = ks_off + (ks_count * 12)
+        WRITE_ASCIIE eo ~%ks8%~ #8
+        WRITE_SHORT (eo + 8) 0
+        WRITE_SHORT (eo + 10) 2
+        SET ks_count = ks_count + 1
+      END
+
+      SET z = ks_count
+      WHILE (z < old_ks_count) BEGIN
+        SET eo = ks_off + (z * 12)
+        WRITE_LONG eo 0
+        WRITE_LONG (eo + 4) 0
+        WRITE_LONG (eo + 8) 0
+        SET z = z + 1
+      END
+
+      WRITE_LONG 0x2A4 ks_count
+
+    END
+  END
+END
