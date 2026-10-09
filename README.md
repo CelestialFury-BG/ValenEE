@@ -151,7 +151,8 @@ After installing, the following can be verified in Near Infinity. If any of thes
 
 ## Credits
 
-- **Original Mod Author:** Weimer
+- **Original Mod Author:** Westley Weimer
+- **Contributing:** Jason Compton
 - **Modern EE/EET Edition:** /u/celestialfury
 - **French translation:** Ly Meng, Laurent Duvernet, Cocobard
 - **Spanish translation:** Clan REO
