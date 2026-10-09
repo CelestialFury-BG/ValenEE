@@ -237,7 +237,11 @@ After installation, the following can be verified in Near Infinity:
 
 ### Original Author
 
-* Weimer
+* Westley Weimer
+
+### Contributing (original) 
+
+* Jason Compton
 
 ### Modern EE/EET Edition
 
