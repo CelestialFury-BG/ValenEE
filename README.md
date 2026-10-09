@@ -151,18 +151,32 @@ After installing, the following can be verified in Near Infinity. If any of thes
 
 ## Credits
 
-- **Original Mod Author:** Westley Weimer
-- **Contributing:** Jason Compton
-- **Modern EE/EET Edition:** /u/celestialfury
-- **French translation:** Ly Meng, Laurent Duvernet, Cocobard
-- **Spanish translation:** Clan REO
-- **German translation:** Sebastian de Waal, Thalantyr, Tanis, Falk
-- **Polish translation:** Grzesiek Miazga
-- **Italian translation:** Al17 and Kelvan
-- **Russian translation:** AERIE.ru
-- **Chinese translation:** yun395, kalabaka
-- **Japanese translation:** ironthrone
-- **Tools:** WeiDU · Near Infinity · Project Infinity
+### Original Author
+- Westley Weimer
+
+### Contributing (original)
+- Homunculus — scripting, balancing, and internal detail work on
+  Valen's vampiric powers (per the original readme's Thanks section)
+
+### Translations
+- French — Ly Meng, Laurent Duvernet, Cocobard
+- Spanish — Clan REO ([REO]-Arturo, [REO]-Drohen-Trohen,
+  [REO]-Killfax, [REO]-Styx, Thamar, Artemis_Entreri)
+- German — Sebastian de Waal, Thalantyr, Tanis Eichenblatt,
+  Falk Swoboda
+- Polish — Grzesiek Miazga
+- Italian — Al17, Kelvan
+- Russian — Aerie.ru
+- Japanese — ironthrone
+- Chinese (Simplified) — kalabaka, yun395
+- Chinese (Traditional) — kalabaka, yun395
+
+### Modern EE/EET Edition
+- /u/celestialfury (structural refactoring, Project Infinity
+  support, WeiDU logic stabilization)
+
+### Tools
+- WeiDU, Near Infinity, Project Infinity
 
 ---
 
