@@ -232,26 +232,34 @@ After installation, the following can be verified in Near Infinity:
 **Important:** use a fresh save created after this install when diagnosing any in-game display, dialogue, or bark bug. BG saves embed strref *numbers*, not strings; a save made under an earlier install can show unrelated text even when the current install is correct. See Rule 30b.
 
 ------------------------------
-
 ## Credits
 
 ### Original Author
+- Westley Weimer
 
-* Westley Weimer
+### Contributing (original)
+- Homunculus — scripting, balancing, and internal detail work on
+  Valen's vampiric powers (per the original readme's Thanks section)
 
-### Contributing (original) 
-
-* Jason Compton
+### Translations
+- French — Ly Meng, Laurent Duvernet, Cocobard
+- Spanish — Clan REO ([REO]-Arturo, [REO]-Drohen-Trohen,
+  [REO]-Killfax, [REO]-Styx, Thamar, Artemis_Entreri)
+- German — Sebastian de Waal, Thalantyr, Tanis Eichenblatt,
+  Falk Swoboda
+- Polish — Grzesiek Miazga
+- Italian — Al17, Kelvan
+- Russian — Aerie.ru
+- Japanese — ironthrone
+- Chinese (Simplified) — kalabaka, yun395
+- Chinese (Traditional) — kalabaka, yun395
 
 ### Modern EE/EET Edition
-
-* /u/celestialfury (structural refactoring, Project Infinity support, WeiDU logic stabilization)
+- /u/celestialfury (structural refactoring, Project Infinity
+  support, WeiDU logic stabilization)
 
 ### Tools
-
-* WeiDU
-* Near Infinity
-* Project Infinity
+- WeiDU, Near Infinity, Project Infinity
 
 ------------------------------
 
