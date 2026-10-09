@@ -1,49 +1,94 @@
 {
-  "id": "valenEE",
-  "name": "Valen Mod Pack (Modern EE/EET Edition)",
-  "author": "Weimer (Original), Modernization by /u/celestialfury",
-  "version": "2.0.5",
-  "description": "A fully modernized, modular, EE/EET-compatible version of the classic Valen mod. This edition rebuilds the technical foundation for modern WeiDU, featuring per-dialogue TRA scoping, layered language TRAs with automatic English fallback across ten languages, localized component names, explicit CRE field writes for the joinable Valen NPC via the reusable EE_SET_CRE_FIELDS helper, a CRE v1.0 format guard on all binary writes, removal of the Noober-era audio purge, load-order-safe 2DA patches, and bulletproofed ToB epilogues.",
-  "category": "NPCs",
-  "tags": ["REC", "TWE"],
-  "supported_games": ["bg2ee", "eet"],
-  "homepage": "https://github.com/CelestialFury-BG/ValenEE",
-  "download": "https://github.com/CelestialFury-BG/ValenEE/releases/tag/v2.0.5",
-  "readme": "valenEE/readme-ee_updates.md",
-  "languages": [
-    { "index": 0, "name": "English", "dir": "american" },
-    { "index": 1, "name": "French", "dir": "french" },
-    { "index": 2, "name": "Spanish", "dir": "spanish" },
-    { "index": 3, "name": "German", "dir": "german" },
-    { "index": 4, "name": "Polish", "dir": "polish" },
-    { "index": 5, "name": "Italian", "dir": "italian" },
-    { "index": 6, "name": "Russian", "dir": "russian" },
-    { "index": 7, "name": "Chinese (Simplified)", "dir": "chs" },
-    { "index": 8, "name": "Chinese (Traditional)", "dir": "cht" },
-    { "index": 9, "name": "Japanese", "dir": "japan" }
-  ],
-  "components": [
+  "i": 950,
+  "sv": 1,
+  "t": "valenEE",
+  "n": "Valen",
+  "c": "NEW NPC MODS",
+  "u": "https://github.com/CelestialFury-BG/ValenEE",
+  "a": "Weimer, celestialfury",
+  "v": "2.0.5",
+  "sum": "A fully modernized, modular, EE/EET-compatible rebuild of Weimer's classic Valen NPC mod, featuring explicit CRE field writes, v1.0 format guards, and load-order-safe 2DA patches.",
+  "tags": ["npc"],
+  "ph": ["SoA", "ToB"],
+  "no": "Install before SolaufeinEE. The cross-mod interjections in Solaufein's Core component require valenj.dlg to already be present at install time. Must also be installed before eet_end, cdtweaks, and stratagems.",
+  "ord": 850,
+  "ic": "Hard conflict with legacy (non-EE) Valen mods. Install before SolaufeinEE for cross-mod interjections.",
+  "co": [
     {
-      "index": 10,
-      "name": "Valen: Core NPC",
-      "tags": ["REC"],
-      "description": "Installs Valen as a joinable party companion. This component includes critical modernizations: explicit field writes for Valen's Dialogue resref, script resrefs, script name, and known-spells table (fixing the corrupted Dialogue resref at 0x2CC and the one-byte-misaligned known-spells table at 0x2D4), an explicit gender write at 0x0238 so the CRE's gender byte is guaranteed Female regardless of the pristine file's contents, a CRE v1.0 format guard on every binary write, removal of the Noober-era audio purge that was silently muting Valen's sound slots, lowercase normalization of script resrefs and death variables for cross-platform safety, vampire hunter script strref resolution, cutscene hardening on the main AI script, area and priest-script extensions, and load-order-safe 2DA patches guarded by BUT_ONLY_IF_IT_CHANGES. The joinable Valen CRE uses setup.tra @17 (\"Valen\"); the Chapter 6 encounter CRE (c6valen.cre) deliberately retains @16 (\"Cynara\")."
+      "n": "Valen: Core NPC",
+      "tp2n": "Valen: Core NPC",
+      "cn": 10,
+      "wf": "valenEE",
+      "wp": "valenEE\\setup-valenEE.tp2",
+      "wc": 10,
+      "wq": "exact",
+      "tg": ["rec"],
+      "no": "Explicit CRE field writes via EE_SET_CRE_FIELDS, v1.0 format guard on all binary writes, corrupted field repair (Dialogue resref, known-spells table), explicit gender write, deprecated-opcode cleanup, vampire hunter script resolution, and cross-platform lowercase normalization."
     },
     {
-      "index": 20,
-      "name": "Give More Creatures Protection From Level Drain & Undead",
-      "tags": ["TWE"],
-      "description": "An independent tweak that grants level drain immunity items to inherently-undead-immune creatures (golems, elementals, demons, slimes, mists, and specific animations) and protection from undead items to select priest and paladin-type NPCs. Scans every v1.0 CRE in override/, not a fixed list. Party NPCs are excluded. v2.2 CREs are intentionally skipped because the race/class byte offsets used (0x272/0x273) are v1.0-specific and have not been field-by-field verified against the v2.2 layout."
+      "n": "Give More Creatures Protection From Level Drain & Undead",
+      "tp2n": "Give More Creatures Protection From Level Drain & Undead",
+      "cn": 20,
+      "wf": "valenEE",
+      "wp": "valenEE\\setup-valenEE.tp2",
+      "wc": 20,
+      "wq": "exact",
+      "tg": ["qol"],
+      "no": "Independent tweak. Scans every v1.0 CRE in override/ and grants LEVIMM to inherently-undead-immune creatures and PRODEAD to qualifying priests and paladins. Party NPCs are excluded."
     }
   ],
-  "relations": {
-    "before": ["solaufeinEE", "eet_end", "tweaks", "cdtweaks", "scs"],
-    "after": [],
-    "conflicts": [
-      {
-        "mod": "valen_classic",
-        "description": "Cannot coexist with older legacy non-EE versions of the Valen mod."
-      }
-    ]
-  }
+  "conflicts": [
+    {
+      "with": "valen_classic",
+      "withId": null,
+      "severity": "hard",
+      "reason": "Cannot coexist with older legacy non-EE versions of the Valen mod.",
+      "myComps": "#10 Valen: Core NPC",
+      "theirComps": "#0 Legacy Valen (classic)",
+      "source": "legacy incompatibility",
+      "evidenceLevel": "speculative"
+    }
+  ],
+  "advisories": [
+    {
+      "with": "solaufeinEE",
+      "withId": 949,
+      "severity": "soft",
+      "reason": "Solaufein's Component 10 checks for valenj.dlg at install time and compiles cross-mod interjections when present. Install Valen first to enable them.",
+      "myComps": "#10 Valen: Core NPC",
+      "theirComps": "#10 Solaufein: Core NPC + SoA Content",
+      "orderOnly": true,
+      "evidenceLevel": "mechanism-verified"
+    }
+  ],
+  "dependencies": [],
+  "langs": {
+    "en": 0,
+    "fr": 1,
+    "es": 2,
+    "de": 3,
+    "pl": 4,
+    "it": 5,
+    "ru": 6,
+    "zh-cn": 7,
+    "zh-tw": 8,
+    "ja": 9
+  },
+  "gh": {
+    "o": "CelestialFury-BG",
+    "r": "ValenEE"
+  },
+  "au": "https://github.com/CelestialFury-BG",
+  "dl": "https://github.com/CelestialFury-BG/ValenEE/releases",
+  "rq": "BG2EE or EET",
+  "rec": {
+    "goes_with": ["solaufeinEE"],
+    "tip": "Install Valen before Solaufein for the cross-mod interjections."
+  },
+  "cl": [
+    {
+      "d": "2026-10-08",
+      "m": "Added to catalog as modernized EE/EET rebuild; 2-component layout with independent extras."
+    }
+  ]
 }
