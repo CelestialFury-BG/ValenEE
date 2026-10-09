@@ -158,6 +158,11 @@ After installing, the following can be verified in Near Infinity. If any of thes
 - Homunculus — scripting, balancing, and internal detail work on
   Valen's vampiric powers (per the original readme's Thanks section)
 
+  ### Valen Portrait
+
+### Original Artwork For Valen 
+- Artist uncredited (Used here as part of the preserved original content)
+
 ### Translations
 - French — Ly Meng, Laurent Duvernet, Cocobard
 - Spanish — Clan REO ([REO]-Arturo, [REO]-Drohen-Trohen,
