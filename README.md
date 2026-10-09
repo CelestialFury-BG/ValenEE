@@ -1,5 +1,10 @@
 # Valen — Modern EE/EET Edition
 
+[![Platform: Windows | macOS | Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](#installation)
+[![Games: BG2EE | EET](https://img.shields.io/badge/games-BG2EE%20%7C%20EET-red)](#requirements)
+[![Latest Release](https://img.shields.io/github/v/release/CelestialFury-BG/ValenEE?color=gold)](../../releases/latest)
+[![Components: 2](https://img.shields.io/badge/components-2-brightgreen)](#components)
+
 > A fully modernized rebuild of Weimer's classic Valen mod, restored for Baldur's Gate II: Enhanced Edition and EET.
 
 ---
